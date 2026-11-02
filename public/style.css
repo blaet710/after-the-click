@@ -16,3 +16,12 @@ header{display:flex;align-items:center;justify-content:space-between;padding:8px
 .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;background:#292932;border:1px solid #555;padding:12px 18px;border-radius:9px;transition:.2s;z-index:20}.toast.show{opacity:1;transform:translate(-50%,0)}
 .cinematic{position:fixed;inset:0;background:#050507f5;z-index:10;display:flex;align-items:center;justify-content:center;flex-direction:column}.cinematic-ring{position:absolute;width:260px;height:260px;border:1px solid #34343d;border-radius:50%;animation:pulse 1.5s infinite}.cinematic-person{width:110px;height:150px;position:relative}.cinematic-person:before{content:"";position:absolute;left:28px;top:0;width:54px;height:65px;background:#020204;border-radius:50%}.cinematic-person:after{content:"";position:absolute;bottom:0;width:110px;height:90px;background:#020204;border-radius:60% 60% 0 0}.cinematic p{font-size:22px;font-weight:800;z-index:1}.cinematic small{color:var(--red);letter-spacing:.3em}@keyframes pulse{50%{transform:scale(1.12);opacity:.4}}
 @media(max-width:850px){.game-layout{grid-template-columns:1fr}.players-panel{order:1}.stage-column{order:2}.action-panel{order:3}.players-panel #players{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.players-panel .player{margin:0}.stage{min-height:280px}.screen{padding:14px}}
+.risk-display{margin:2px 0 12px;padding:10px 12px;border:1px solid #68404a;background:#21151b;border-radius:8px;color:#ffc0c9;text-align:center;font-size:12px;line-height:1.5;font-weight:700}
+.hand-card small{display:block;margin-top:6px;font-size:10px;color:#fff9}
+#previewDesc{white-space:pre-line}
+.chat-panel{background:#111116;border:1px solid #292932;border-radius:9px;padding:14px;margin-top:14px}
+.chat-panel h3{font-size:12px;letter-spacing:.15em;color:var(--red);margin:0 0 10px}
+.chat-messages{height:150px;overflow:auto;background:#0b0b0e;border:1px solid #292932;border-radius:7px;padding:9px;font-size:12px;line-height:1.6}
+.chat-line{display:flex;gap:9px;padding:3px 0;overflow-wrap:anywhere}.chat-line b{color:#ff9aaa;min-width:62px}.chat-line span{color:#ddd}
+.chat-form{display:flex;gap:8px;margin-top:8px}.chat-form input{margin:0;min-width:0;flex:1}.chat-form button{padding:10px 15px}
+@media(max-width:520px){.risk-display{font-size:11px}.chat-messages{height:130px}.chat-form input{font-size:14px}}

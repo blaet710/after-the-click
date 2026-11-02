@@ -35,11 +35,13 @@
       <div class="turn-head"><div><p class="eyebrow">CURRENT TURN</p><h1 id="turnName">플레이어</h1></div><span id="turnBadge" class="turn-badge">WAITING</span></div>
       <div class="stage" id="stage"><div class="orbit"></div><div class="silhouette"><i></i></div><div class="stage-name" id="stageName">WAITING</div><p>THE NEXT RESULT IS UNKNOWN</p></div>
       <p id="stageMessage" class="stage-message">자기 차례가 되면 턴 진행을 눌러 주세요.</p>
+      <div id="riskDisplay" class="risk-display">위험 확률 · 빗나감 50% / 명중 45% / 치명타 5%</div>
       <div class="hand-area"><h3>YOUR CARDS</h3><div id="hand" class="hand"><span class="muted">보유한 카드가 없습니다.</span></div></div>
     </section>
-    <aside class="panel action-panel"><h3>CARD DETAILS</h3><div class="card-preview"><span>✦</span><b id="previewName">UNKNOWN</b></div><p id="previewDesc" class="muted">카드를 선택해 설명을 확인하세요.</p><div id="targetWrap" class="hidden"><label>방해할 플레이어<select id="targetSelect"></select></label></div><button id="useCard" class="secondary wide" disabled>카드 사용</button><button id="turnBtn" class="primary wide" disabled>턴 진행</button><p id="actionHint" class="muted center"></p></aside>
+    <aside class="panel action-panel"><h3>CARD DETAILS</h3><div class="card-preview"><span>✦</span><b id="previewName">UNKNOWN</b></div><p id="previewDesc" class="muted">카드를 선택해 설명을 확인하세요.</p><div id="targetWrap" class="hidden"><label>공격할 플레이어<select id="targetSelect"></select></label></div><button id="useCard" class="secondary wide" disabled>카드 사용</button><button id="turnBtn" class="primary wide" disabled>턴 진행</button><p id="actionHint" class="muted center"></p></aside>
   </div>
   <section class="log-panel"><h3>GAME LOG</h3><div id="log"></div></section>
+  <section class="chat-panel"><h3>ROOM CHAT</h3><div id="chatMessages" class="chat-messages"></div><form id="chatForm" class="chat-form"><input id="chatInput" maxlength="200" placeholder="메시지를 입력하세요..."><button class="primary" type="submit">전송</button></form></section>
 </section>
 <div id="toast" class="toast"></div>
 <div id="cinematic" class="cinematic hidden"><div class="cinematic-ring"></div><div class="cinematic-person"></div><p id="cinematicText">주변이 조용해진다…</p><small>AFTER THE CLICK</small></div>
