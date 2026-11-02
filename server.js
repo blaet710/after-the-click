@@ -156,13 +156,18 @@ io.on("connection", socket => {
     sendRoom(room); cb?.({ok:true,code:roomCode});
   });
 
-  socket.on("startGame", cb => {
+  // The client sends an empty data object before its acknowledgement callback.
+  // Accept both Socket.IO argument positions safely so a missing/invalid callback
+  // can never crash the server process.
+  socket.on("startGame", (_data, cb) => {
+    const reply = typeof cb === "function" ? cb : () => {};
     const room = roomFor(socket);
-    if (!room) return cb?.({error:"방에 먼저 입장해 주세요."});
-    if (socket.id !== room.hostId) return cb?.({error:"방장만 게임을 시작할 수 있습니다."});
-    if (room.players.length < 2) return cb?.({error:"최소 2명이 필요합니다."});
-    if (room.status !== "lobby") return cb?.({error:"게임이 이미 시작되었습니다."});
-    createGame(room); cb?.({ok:true});
+    if (!room) return reply({error:"방에 먼저 입장해 주세요."});
+    if (socket.id !== room.hostId) return reply({error:"방장만 게임을 시작할 수 있습니다."});
+    if (room.players.length < 2) return reply({error:"최소 2명이 필요합니다."});
+    if (room.status !== "lobby") return reply({error:"게임이 이미 시작되었습니다."});
+    createGame(room);
+    reply({ok:true});
   });
 
   socket.on("useCard", ({index,targetId}, cb) => {
