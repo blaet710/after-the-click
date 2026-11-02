@@ -66,26 +66,54 @@ function finishIfNeeded(room) {
 }
 function advanceTurn(room) {
   if (finishIfNeeded(room)) return;
+
   const start = room.currentIndex;
+  const playerCount = room.players.length;
   let next = start;
-  for (let i=0; i<room.players.length; i++) {
-    next = (next + 1) % room.players.length;
-    if (room.players[next].alive) break;
+  let wrapped = false;
+
+  // Find the next living player without recursively calling advanceTurn.
+  // This prevents a server lock if several players have skip effects queued.
+  for (let i = 0; i < playerCount; i++) {
+    next = (next + 1) % playerCount;
+    if (next <= start) wrapped = true;
+    if (room.players[next]?.alive) break;
   }
-  if (next <= start) {
+
+  if (wrapped) {
     room.cycle += 1;
     addLog(room, `사이클 ${room.cycle} 시작! 생존자에게 카드가 지급됩니다.`);
     alive(room).forEach(p => p.cards.push({...pick(CARD_DEFS)}));
-    next = room.players.findIndex(p => p.alive);
   }
+
+  // Consume queued skip effects at most once per living player.
+  // If everyone is skipped, the first skipped player gets the turn after
+  // all skip effects have been consumed, rather than looping forever.
+  const livingCount = alive(room).length;
+  let firstSkipped = null;
+  let chosen = false;
+  for (let i = 0; i < livingCount; i++) {
+    if (!room.players[next]?.alive) {
+      do { next = (next + 1) % playerCount; } while (!room.players[next]?.alive);
+    }
+    const candidate = room.players[next];
+    if (!candidate.skipNextTurn) {
+      chosen = true;
+      break;
+    }
+    candidate.skipNextTurn = false;
+    if (firstSkipped === null) firstSkipped = next;
+    addLog(room, `${candidate.name}의 턴이 건너뛰어졌습니다.`);
+    next = (next + 1) % playerCount;
+  }
+
+  if (!chosen && firstSkipped !== null) {
+    next = firstSkipped;
+    addLog(room, "모든 생존자의 턴 건너뛰기 효과가 소진되어 다음 플레이어가 진행합니다.");
+  }
+
   room.currentIndex = next;
   room.danger = 20 + Math.floor(Math.random() * 31);
-  const p = current(room);
-  if (p?.skipNextTurn) {
-    p.skipNextTurn = false;
-    addLog(room, `${p.name}의 턴이 건너뛰어졌습니다.`);
-    advanceTurn(room);
-  }
 }
 function createGame(room) {
   room.status = "playing"; room.cycle = 1; room.currentIndex = 0;
