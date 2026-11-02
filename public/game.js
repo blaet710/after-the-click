@@ -1,3 +1,15 @@
+const bgm = document.getElementById("bgm");
+if (bgm) {
+  bgm.volume = 0.35;
+  const startBgm = () => {
+    bgm.play().catch(() => {});
+    window.removeEventListener("pointerdown", startBgm);
+    window.removeEventListener("keydown", startBgm);
+  };
+  window.addEventListener("pointerdown", startBgm, { once: true });
+  window.addEventListener("keydown", startBgm, { once: true });
+}
+
 const socket = io();
 const $ = id => document.getElementById(id);
 let state = null, selectedCard = null, currentScreen = "home", busy = false;
@@ -5,14 +17,38 @@ function show(id){["home","lobby","game"].forEach(x=>$(x).classList.toggle("hidd
 function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600)}
 function name(){return $("playerName").value.trim()}
 function error(msg){$("homeError").textContent=msg}
-function request(event,data){return new Promise(resolve=>socket.emit(event,data||{},resolve))}
+function request(event,data){
+  return new Promise(resolve=>{
+    if(!socket.connected){resolve({error:"서버 연결이 끊어졌습니다. 새로고침 후 다시 접속해 주세요."});return;}
+    let settled=false;
+    const timer=setTimeout(()=>{if(!settled){settled=true;resolve({error:"서버 응답이 없습니다. 잠시 후 다시 시도해 주세요."});}},8000);
+    socket.emit(event,data||{},response=>{
+      if(settled)return;
+      settled=true;clearTimeout(timer);resolve(response||{error:"서버에서 응답을 받지 못했습니다."});
+    });
+  });
+}
 $("createBtn").onclick=async()=>{error("");const n=name();if(!n)return error("이름을 입력해 주세요.");const r=await request("createRoom",{name:n});if(r?.error)return error(r.error);show("lobby")};
 $("joinBtn").onclick=async()=>{error("");const n=name(),c=$("roomCode").value.trim();if(!n||!c)return error("이름과 방 코드를 입력해 주세요.");const r=await request("joinRoom",{name:n,code:c});if(r?.error)return error(r.error);show("lobby")};
 $("roomCode").addEventListener("input",e=>e.target.value=e.target.value.toUpperCase());
 $("copyCode").onclick=()=>{if(state?.code)navigator.clipboard?.writeText(state.code).then(()=>toast("방 코드를 복사했습니다."),()=>toast("코드: "+state.code))};
 $("startBtn").onclick=async()=>{const r=await request("startGame");if(r?.error)toast(r.error)};
 $("leaveBtn").onclick=()=>{socket.emit("leaveRoom");state=null;selectedCard=null;show("home")};
-$("turnBtn").onclick=async()=>{if(busy)return;busy=true;$("turnBtn").disabled=true;showCinematic();setTimeout(async()=>{const r=await request("takeTurn");hideCinematic();busy=false;if(r?.error)toast(r.error);},1450)};
+$("turnBtn").onclick=async()=>{
+  if(busy)return;
+  busy=true;$("turnBtn").disabled=true;
+  showCinematic();
+  try{
+    await new Promise(resolve=>setTimeout(resolve,1450));
+    const r=await request("takeTurn");
+    if(r?.error)toast(r.error);
+  }catch(e){
+    toast("턴 처리 중 오류가 발생했습니다. 연결 상태를 확인해 주세요.");
+  }finally{
+    hideCinematic();busy=false;
+    if(state)renderGame();
+  }
+};
 $("useCard").onclick=async()=>{if(selectedCard===null)return;const card=state?.myCards?.[selectedCard];if(!card)return;let targetId=null;if(card.effect==="skip")targetId=$("targetSelect").value;const r=await request("useCard",{index:selectedCard,targetId});if(r?.error)toast(r.error);else{selectedCard=null;toast("카드를 사용했습니다.")}};
 function showCinematic(){ $("cinematic").classList.remove("hidden"); const lines=["주변이 조용해진다…","결과를 확인합니다"];let i=0;$("cinematicText").textContent=lines[0];const timer=setInterval(()=>{i++;if(i<lines.length)$("cinematicText").textContent=lines[i];else clearInterval(timer)},650);$("cinematic").dataset.timer=timer}
 function hideCinematic(){clearInterval(Number($("cinematic").dataset.timer));$("cinematic").classList.add("hidden")}
