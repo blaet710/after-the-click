@@ -10,6 +10,22 @@ if (bgm) {
   window.addEventListener("keydown", startBgm, { once: true });
 }
 
+// 효과음: 브라우저 정책상 실제 사용자 조작 이후에 재생합니다.
+const sfxFiles = {
+  click: "/assets/click.wav",
+  card: "/assets/card.wav",
+  impact: "/assets/impact.wav",
+  blank: "/assets/blank.wav"
+};
+function playSfx(name, volume = 0.75) {
+  const src = sfxFiles[name];
+  if (!src) return;
+  const audio = new Audio(src);
+  audio.volume = volume;
+  audio.play().catch(() => {});
+}
+let previousLog = [];
+
 const socket = io();
 const $ = id => document.getElementById(id);
 let state = null, selectedCard = null, currentScreen = "home", busy = false;
@@ -28,14 +44,15 @@ function request(event,data){
     });
   });
 }
-$("createBtn").onclick=async()=>{error("");const n=name();if(!n)return error("이름을 입력해 주세요.");const r=await request("createRoom",{name:n});if(r?.error)return error(r.error);show("lobby")};
-$("joinBtn").onclick=async()=>{error("");const n=name(),c=$("roomCode").value.trim();if(!n||!c)return error("이름과 방 코드를 입력해 주세요.");const r=await request("joinRoom",{name:n,code:c});if(r?.error)return error(r.error);show("lobby")};
+$("createBtn").onclick=async()=>{playSfx("click",0.5);error("");const n=name();if(!n)return error("이름을 입력해 주세요.");const r=await request("createRoom",{name:n});if(r?.error)return error(r.error);show("lobby")};
+$("joinBtn").onclick=async()=>{playSfx("click",0.5);error("");const n=name(),c=$("roomCode").value.trim();if(!n||!c)return error("이름과 방 코드를 입력해 주세요.");const r=await request("joinRoom",{name:n,code:c});if(r?.error)return error(r.error);show("lobby")};
 $("roomCode").addEventListener("input",e=>e.target.value=e.target.value.toUpperCase());
 $("copyCode").onclick=()=>{if(state?.code)navigator.clipboard?.writeText(state.code).then(()=>toast("방 코드를 복사했습니다."),()=>toast("코드: "+state.code))};
-$("startBtn").onclick=async()=>{const r=await request("startGame");if(r?.error)toast(r.error)};
-$("leaveBtn").onclick=()=>{socket.emit("leaveRoom");state=null;selectedCard=null;show("home")};
+$("startBtn").onclick=async()=>{playSfx("click",0.5);const r=await request("startGame");if(r?.error)toast(r.error)};
+$("leaveBtn").onclick=()=>{playSfx("click",0.5);socket.emit("leaveRoom");state=null;selectedCard=null;show("home")};
 $("turnBtn").onclick=async()=>{
   if(busy)return;
+  playSfx("click",0.45);
   busy=true;$("turnBtn").disabled=true;
   showCinematic();
   try{
@@ -49,7 +66,7 @@ $("turnBtn").onclick=async()=>{
     if(state)renderGame();
   }
 };
-$("useCard").onclick=async()=>{if(selectedCard===null)return;const card=state?.myCards?.[selectedCard];if(!card)return;let targetId=null;if(card.effect==="skip")targetId=$("targetSelect").value;const r=await request("useCard",{index:selectedCard,targetId});if(r?.error)toast(r.error);else{selectedCard=null;toast("카드를 사용했습니다.")}};
+$("useCard").onclick=async()=>{if(selectedCard===null)return;playSfx("card");const card=state?.myCards?.[selectedCard];if(!card)return;let targetId=null;if(card.effect==="skip")targetId=$("targetSelect").value;const r=await request("useCard",{index:selectedCard,targetId});if(r?.error)toast(r.error);else{selectedCard=null;toast("카드를 사용했습니다.")}};
 function showCinematic(){ $("cinematic").classList.remove("hidden"); const lines=["주변이 조용해진다…","결과를 확인합니다"];let i=0;$("cinematicText").textContent=lines[0];const timer=setInterval(()=>{i++;if(i<lines.length)$("cinematicText").textContent=lines[i];else clearInterval(timer)},650);$("cinematic").dataset.timer=timer}
 function hideCinematic(){clearInterval(Number($("cinematic").dataset.timer));$("cinematic").classList.add("hidden")}
 socket.on("roomState",s=>{state=s;if(s.status==="lobby")renderLobby();else renderGame()});
@@ -71,7 +88,17 @@ $("turnBtn").disabled=!state.isMyTurn||state.status!=="playing"||busy;
 $("actionHint").textContent=state.isMyTurn?"당신의 턴입니다.":"다른 플레이어의 턴입니다.";
 $("targetWrap").classList.toggle("hidden",card?.effect!=="skip");
 if(card?.effect==="skip"){$("targetSelect").innerHTML=state.players.filter(p=>p.alive&&p.id!==socket.id).map(p=>`<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("")}
-$("log").innerHTML=state.log.map(x=>`<div class="log-line">${escapeHtml(x)}</div>`).join("");$("log").scrollTop=$("log").scrollHeight;
+$("log").innerHTML=state.log.map(x=>`<div class="log-line">${escapeHtml(x)}</div>`).join("");
+const currentLog = state.log || [];
+if (previousLog.length && currentLog.length > previousLog.length) {
+  for (const line of currentLog.slice(previousLog.length)) {
+    if (/판정 실패|피해|공격에 당|체력이 감소/.test(line)) playSfx("impact");
+    else if (/공포탄|방어막 발동|보호 효과 발동/.test(line)) playSfx("blank");
+    else if (/카드 사용/.test(line)) playSfx("card");
+  }
+}
+previousLog = currentLog.slice();
+$("log").scrollTop=$("log").scrollHeight;
 if(state.status==="finished"){$("turnBtn").disabled=true;$("useCard").disabled=true}
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
