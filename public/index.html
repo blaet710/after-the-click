@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AFTER THE CLICK</title><link rel="stylesheet" href="style.css"></head>
+<body><main id="app">
+<section id="home" class="screen">
+  <div class="brand"><div>AFTER THE</div><strong>CLICK</strong><small>A CARD-BASED SURVIVAL GAME</small></div>
+  <div class="home-panel">
+    <label>플레이어 이름<input id="playerName" maxlength="18" placeholder="이름을 입력해 주세요"></label>
+    <button id="createBtn" class="primary">온라인 방 만들기</button>
+    <div class="split"><span></span> OR <span></span></div>
+    <label>방 코드<input id="roomCode" maxlength="6" placeholder="예: A7K29"></label>
+    <button id="joinBtn" class="secondary">방 참가하기</button>
+    <p id="homeError" class="error"></p>
+  </div><footer>ONLINE MULTIPLAYER · 2–6 PLAYERS</footer>
+</section>
+
+<section id="lobby" class="screen hidden">
+  <header><div class="mini-brand">AFTER THE <b>CLICK</b></div><span class="pill">WAITING ROOM</span></header>
+  <div class="lobby-card">
+    <p class="eyebrow">ROOM CODE</p><div class="room-code"><strong id="codeText">------</strong><button id="copyCode" class="copy">복사</button></div>
+    <p class="muted">친구에게 방 코드를 공유해 입장시켜 주세요.</p>
+    <h2>PLAYERS <small id="playerCount">0 / 6</small></h2>
+    <div id="lobbyPlayers" class="lobby-players"></div>
+    <button id="startBtn" class="primary wide">게임 시작</button>
+    <p id="lobbyHint" class="muted center">방장이 게임을 시작할 수 있습니다. 최소 2명 필요</p>
+    <button id="leaveBtn" class="text-button">방 나가기</button>
+  </div>
+</section>
+
+<section id="game" class="screen hidden">
+  <header><div class="mini-brand">AFTER THE <b>CLICK</b></div><span class="pill" id="cycle">CYCLE 01</span></header>
+  <div class="game-layout">
+    <aside class="panel players-panel"><h3>PLAYERS</h3><div id="players"></div></aside>
+    <section class="stage-column">
+      <div class="turn-head"><div><p class="eyebrow">CURRENT TURN</p><h1 id="turnName">플레이어</h1></div><span id="turnBadge" class="turn-badge">WAITING</span></div>
+      <div class="stage" id="stage"><div class="orbit"></div><div class="silhouette"><i></i></div><div class="stage-name" id="stageName">WAITING</div><p>THE NEXT RESULT IS UNKNOWN</p></div>
+      <p id="stageMessage" class="stage-message">자기 차례가 되면 턴 진행을 눌러 주세요.</p>
+      <div class="hand-area"><h3>YOUR CARDS</h3><div id="hand" class="hand"><span class="muted">보유한 카드가 없습니다.</span></div></div>
+    </section>
+    <aside class="panel action-panel"><h3>CARD DETAILS</h3><div class="card-preview"><span>✦</span><b id="previewName">UNKNOWN</b></div><p id="previewDesc" class="muted">카드를 선택해 설명을 확인하세요.</p><div id="targetWrap" class="hidden"><label>방해할 플레이어<select id="targetSelect"></select></label></div><button id="useCard" class="secondary wide" disabled>카드 사용</button><button id="turnBtn" class="primary wide" disabled>턴 진행</button><p id="actionHint" class="muted center"></p></aside>
+  </div>
+  <section class="log-panel"><h3>GAME LOG</h3><div id="log"></div></section>
+</section>
+<div id="toast" class="toast"></div>
+<div id="cinematic" class="cinematic hidden"><div class="cinematic-ring"></div><div class="cinematic-person"></div><p id="cinematicText">주변이 조용해진다…</p><small>AFTER THE CLICK</small></div>
+</main>
+<script src="/socket.io/socket.io.js"></script><script src="game.js"></script></body></html>

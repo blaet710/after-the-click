@@ -1,0 +1,41 @@
+const socket = io();
+const $ = id => document.getElementById(id);
+let state = null, selectedCard = null, currentScreen = "home", busy = false;
+function show(id){["home","lobby","game"].forEach(x=>$(x).classList.toggle("hidden",x!==id));currentScreen=id}
+function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600)}
+function name(){return $("playerName").value.trim()}
+function error(msg){$("homeError").textContent=msg}
+function request(event,data){return new Promise(resolve=>socket.emit(event,data||{},resolve))}
+$("createBtn").onclick=async()=>{error("");const n=name();if(!n)return error("이름을 입력해 주세요.");const r=await request("createRoom",{name:n});if(r?.error)return error(r.error);show("lobby")};
+$("joinBtn").onclick=async()=>{error("");const n=name(),c=$("roomCode").value.trim();if(!n||!c)return error("이름과 방 코드를 입력해 주세요.");const r=await request("joinRoom",{name:n,code:c});if(r?.error)return error(r.error);show("lobby")};
+$("roomCode").addEventListener("input",e=>e.target.value=e.target.value.toUpperCase());
+$("copyCode").onclick=()=>{if(state?.code)navigator.clipboard?.writeText(state.code).then(()=>toast("방 코드를 복사했습니다."),()=>toast("코드: "+state.code))};
+$("startBtn").onclick=async()=>{const r=await request("startGame");if(r?.error)toast(r.error)};
+$("leaveBtn").onclick=()=>{socket.emit("leaveRoom");state=null;selectedCard=null;show("home")};
+$("turnBtn").onclick=async()=>{if(busy)return;busy=true;$("turnBtn").disabled=true;showCinematic();setTimeout(async()=>{const r=await request("takeTurn");hideCinematic();busy=false;if(r?.error)toast(r.error);},1450)};
+$("useCard").onclick=async()=>{if(selectedCard===null)return;const card=state?.myCards?.[selectedCard];if(!card)return;let targetId=null;if(card.effect==="skip")targetId=$("targetSelect").value;const r=await request("useCard",{index:selectedCard,targetId});if(r?.error)toast(r.error);else{selectedCard=null;toast("카드를 사용했습니다.")}};
+function showCinematic(){ $("cinematic").classList.remove("hidden"); const lines=["주변이 조용해진다…","결과를 확인합니다"];let i=0;$("cinematicText").textContent=lines[0];const timer=setInterval(()=>{i++;if(i<lines.length)$("cinematicText").textContent=lines[i];else clearInterval(timer)},650);$("cinematic").dataset.timer=timer}
+function hideCinematic(){clearInterval(Number($("cinematic").dataset.timer));$("cinematic").classList.add("hidden")}
+socket.on("roomState",s=>{state=s;if(s.status==="lobby")renderLobby();else renderGame()});
+socket.on("disconnect",()=>{if(currentScreen!=="home")toast("서버 연결이 끊어졌습니다. 새로고침 후 다시 접속해 주세요.")});
+function renderLobby(){show("lobby");$("codeText").textContent=state.code;$("playerCount").textContent=`${state.players.length} / 6`;
+$("lobbyPlayers").innerHTML=state.players.map(p=>`<div class="lobby-player"><span>${escapeHtml(p.name)}</span>${p.isHost?'<b class="host-tag">HOST</b>':'<span class="muted">PLAYER</span>'}</div>`).join("");
+const host=state.hostId===socket.id;$("startBtn").classList.toggle("hidden",!host);$("startBtn").disabled=state.players.length<2;$("lobbyHint").textContent=host?"최소 2명이 모이면 게임을 시작할 수 있습니다.":"방장이 게임을 시작할 때까지 기다려 주세요."}
+function renderGame(){show("game");$("cycle").textContent=`CYCLE ${String(state.cycle).padStart(2,"0")}`;
+const me=state.players.find(p=>p.id===socket.id),turn=state.players.find(p=>p.id===state.currentPlayerId);
+$("turnName").textContent=turn?.name||"게임 종료";$("stageName").textContent=turn?.name||"WAITING";
+$("turnBadge").textContent=state.status==="finished"?"FINISHED":state.isMyTurn?"YOUR TURN":"WAITING";
+$("stageMessage").textContent=state.status==="finished"?`최종 승자: ${state.winner}`:state.isMyTurn?"당신의 차례입니다. 카드를 사용하거나 턴을 진행하세요.":`현재 ${turn?.name||""}님의 차례를 기다리는 중입니다.`;
+$("players").innerHTML=state.players.map(p=>`<div class="player ${p.id===state.currentPlayerId?"active":""} ${!p.alive?"dead":""}"><b>${escapeHtml(p.name)} ${p.isHost?"★":""}</b><small>${p.alive?`♥ ${p.hp}/3 · 카드 ${p.cardCount}장`:"탈락"}</small></div>`).join("");
+$("hand").innerHTML=state.myCards?.length?state.myCards.map((c,i)=>`<button class="hand-card ${selectedCard===i?"selected":""}" data-index="${i}" style="background:${c.color}"><span>✦</span><b>${escapeHtml(c.name)}</b></button>`).join(""):'<span class="muted">보유한 카드가 없습니다.</span>';
+document.querySelectorAll(".hand-card").forEach(b=>b.onclick=()=>{selectedCard=Number(b.dataset.index);renderGame()});
+const card=state.myCards?.[selectedCard];$("previewName").textContent=card?.name||"UNKNOWN";$("previewDesc").textContent=card?.description||"카드를 선택해 설명을 확인하세요.";
+$("useCard").disabled=!state.isMyTurn||!card||state.status!=="playing";
+$("turnBtn").disabled=!state.isMyTurn||state.status!=="playing"||busy;
+$("actionHint").textContent=state.isMyTurn?"당신의 턴입니다.":"다른 플레이어의 턴입니다.";
+$("targetWrap").classList.toggle("hidden",card?.effect!=="skip");
+if(card?.effect==="skip"){$("targetSelect").innerHTML=state.players.filter(p=>p.alive&&p.id!==socket.id).map(p=>`<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("")}
+$("log").innerHTML=state.log.map(x=>`<div class="log-line">${escapeHtml(x)}</div>`).join("");$("log").scrollTop=$("log").scrollHeight;
+if(state.status==="finished"){$("turnBtn").disabled=true;$("useCard").disabled=true}
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
