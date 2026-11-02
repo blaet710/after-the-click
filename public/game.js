@@ -1,16 +1,27 @@
 const bgm = document.getElementById("bgm");
-if (bgm) {
-  bgm.volume = 0.35;
-  const startBgm = () => {
-    bgm.play().catch(() => {});
-    window.removeEventListener("pointerdown", startBgm);
-    window.removeEventListener("keydown", startBgm);
-  };
-  window.addEventListener("pointerdown", startBgm, { once: true });
-  window.addEventListener("keydown", startBgm, { once: true });
+let audioUnlocked = false;
+function unlockAudio() {
+  if (audioUnlocked) return;
+  // 모바일 Safari/Chrome은 첫 번째 실제 탭 안에서 재생을 시작해야 합니다.
+  if (bgm) {
+    bgm.volume = 0.35;
+    const attempt = bgm.play();
+    if (attempt && typeof attempt.then === "function") {
+      attempt.then(() => { audioUnlocked = true; })
+        .catch(() => { /* 다음 사용자 탭에서 다시 시도 */ });
+    } else {
+      audioUnlocked = true;
+    }
+  } else {
+    audioUnlocked = true;
+  }
 }
+// click은 모바일 터치 후 발생하는 신뢰된 사용자 동작이므로 모바일 브라우저도 지원합니다.
+document.addEventListener("click", unlockAudio, true);
+document.addEventListener("touchend", unlockAudio, {capture:true, passive:true});
+document.addEventListener("keydown", unlockAudio, true);
 
-// 효과음: 브라우저 정책상 실제 사용자 조작 이후에 재생합니다.
+// 효과음: 사용자 조작으로 오디오가 잠금 해제된 뒤 재생합니다.
 const sfxFiles = {
   click: "/assets/click.wav",
   card: "/assets/card.wav",
@@ -21,7 +32,9 @@ function playSfx(name, volume = 0.75) {
   const src = sfxFiles[name];
   if (!src) return;
   const audio = new Audio(src);
+  audio.preload = "auto";
   audio.volume = volume;
+  // 모바일에서는 BGM을 시작한 사용자 탭 이후 효과음 재생이 허용됩니다.
   audio.play().catch(() => {});
 }
 let previousLog = [];
