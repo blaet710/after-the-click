@@ -131,29 +131,31 @@ function roomFor(socket) {
 }
 
 io.on("connection", socket => {
-  socket.on("createRoom", ({name}, cb) => {
-    name = String(name || "").trim().slice(0,18);
-    if (!name) return cb?.({error:"이름을 입력해 주세요."});
+  socket.on("createRoom", (data = {}, cb) => {
+    const reply = result => { if (typeof cb === "function") cb(result); };
+    let name = String(data?.name || "").trim().slice(0,18);
+    if (!name) return reply({error:"이름을 입력해 주세요."});
     let roomCode; do { roomCode = code(); } while (rooms.has(roomCode));
     const player = {id:socket.id,name,hp:MAX_HP,alive:true,cards:[],shield:false,protected:false,lucky:false,skipNextTurn:false};
     const room = {code:roomCode,hostId:socket.id,status:"lobby",cycle:1,currentIndex:0,danger:30,players:[player],log:["방이 생성되었습니다."],winner:null};
     rooms.set(roomCode, room); socket.join(roomCode); socket.data.roomCode=roomCode;
-    sendRoom(room); cb?.({ok:true,code:roomCode});
+    sendRoom(room); reply({ok:true,code:roomCode});
   });
 
-  socket.on("joinRoom", ({code:roomCode,name}, cb) => {
-    roomCode = String(roomCode || "").trim().toUpperCase();
-    name = String(name || "").trim().slice(0,18);
+  socket.on("joinRoom", (data = {}, cb) => {
+    const reply = result => { if (typeof cb === "function") cb(result); };
+    let roomCode = String(data?.code || "").trim().toUpperCase();
+    let name = String(data?.name || "").trim().slice(0,18);
     const room = rooms.get(roomCode);
-    if (!name) return cb?.({error:"이름을 입력해 주세요."});
-    if (!room) return cb?.({error:"방 코드를 찾을 수 없습니다."});
-    if (room.status !== "lobby") return cb?.({error:"이미 게임이 시작된 방입니다."});
-    if (room.players.length >= 6) return cb?.({error:"방이 가득 찼습니다. (최대 6명)"});
-    if (room.players.some(p => p.name.toLowerCase() === name.toLowerCase())) return cb?.({error:"이미 사용 중인 이름입니다."});
+    if (!name) return reply({error:"이름을 입력해 주세요."});
+    if (!room) return reply({error:"방 코드를 찾을 수 없습니다."});
+    if (room.status !== "lobby") return reply({error:"이미 게임이 시작된 방입니다."});
+    if (room.players.length >= 6) return reply({error:"방이 가득 찼습니다. (최대 6명)"});
+    if (room.players.some(p => p.name.toLowerCase() === name.toLowerCase())) return reply({error:"이미 사용 중인 이름입니다."});
     room.players.push({id:socket.id,name,hp:MAX_HP,alive:true,cards:[],shield:false,protected:false,lucky:false,skipNextTurn:false});
     socket.join(roomCode); socket.data.roomCode=roomCode;
     addLog(room, `${name}님이 입장했습니다.`);
-    sendRoom(room); cb?.({ok:true,code:roomCode});
+    sendRoom(room); reply({ok:true,code:roomCode});
   });
 
   // The client sends an empty data object before its acknowledgement callback.
@@ -170,18 +172,20 @@ io.on("connection", socket => {
     reply({ok:true});
   });
 
-  socket.on("useCard", ({index,targetId}, cb) => {
+  socket.on("useCard", (data = {}, cb) => {
+    const reply = result => { if (typeof cb === "function") cb(result); };
+    const {index, targetId} = data || {};
     const room = roomFor(socket);
-    if (!room || room.status !== "playing") return cb?.({error:"진행 중인 게임이 없습니다."});
+    if (!room || room.status !== "playing") return reply({error:"진행 중인 게임이 없습니다."});
     const p = room.players.find(x => x.id === socket.id);
-    if (!p || current(room)?.id !== p.id) return cb?.({error:"자기 턴에만 카드를 사용할 수 있습니다."});
+    if (!p || current(room)?.id !== p.id) return reply({error:"자기 턴에만 카드를 사용할 수 있습니다."});
     const card = p.cards[index];
-    if (!card) return cb?.({error:"카드를 찾을 수 없습니다."});
+    if (!card) return reply({error:"카드를 찾을 수 없습니다."});
     const target = room.players.find(x => x.id === targetId && x.alive && x.id !== p.id);
-    if (card.effect === "heal" && p.hp >= MAX_HP) return cb?.({error:"목숨이 이미 최대입니다."});
-    if (card.effect === "shield" && p.shield) return cb?.({error:"방어막이 이미 활성화되어 있습니다."});
-    if (card.effect === "protect" && p.protected) return cb?.({error:"보호 효과가 이미 활성화되어 있습니다."});
-    if (card.effect === "skip" && !target) return cb?.({error:"방해할 상대를 선택해 주세요."});
+    if (card.effect === "heal" && p.hp >= MAX_HP) return reply({error:"목숨이 이미 최대입니다."});
+    if (card.effect === "shield" && p.shield) return reply({error:"방어막이 이미 활성화되어 있습니다."});
+    if (card.effect === "protect" && p.protected) return reply({error:"보호 효과가 이미 활성화되어 있습니다."});
+    if (card.effect === "skip" && !target) return reply({error:"방해할 상대를 선택해 주세요."});
     p.cards.splice(index,1);
     if (card.effect === "shield") p.shield=true;
     if (card.effect === "luck") p.lucky=true;
@@ -190,14 +194,16 @@ io.on("connection", socket => {
     if (card.effect === "skip") { target.skipNextTurn=true; addLog(room, `${p.name}님이 ${target.name}님의 다음 턴을 건너뛰게 했습니다.`); }
     if (card.effect === "scout") addLog(room, `${p.name}님이 정찰 카드를 사용했습니다. 현재 가상 위험 수치: ${room.danger}%`);
     else addLog(room, `${p.name}님이 [${card.name}] 카드를 사용했습니다.`);
-    sendRoom(room); cb?.({ok:true});
+    sendRoom(room); reply({ok:true});
   });
 
-  socket.on("takeTurn", cb => {
+  socket.on("takeTurn", (data, cb) => {
+    const callback = typeof data === "function" ? data : cb;
+    const reply = result => { if (typeof callback === "function") callback(result); };
     const room = roomFor(socket);
-    if (!room || room.status !== "playing") return cb?.({error:"진행 중인 게임이 없습니다."});
+    if (!room || room.status !== "playing") return reply({error:"진행 중인 게임이 없습니다."});
     const p = room.players.find(x => x.id === socket.id);
-    if (!p || current(room)?.id !== p.id) return cb?.({error:"현재 턴인 플레이어만 진행할 수 있습니다."});
+    if (!p || current(room)?.id !== p.id) return reply({error:"현재 턴인 플레이어만 진행할 수 있습니다."});
     let message;
     if (p.skipNextTurn) {
       p.skipNextTurn=false; message=`${p.name}님의 턴이 건너뛰어졌습니다.`;
@@ -216,7 +222,7 @@ io.on("connection", socket => {
     }
     addLog(room,message);
     if (!finishIfNeeded(room)) advanceTurn(room);
-    sendRoom(room); cb?.({ok:true,result:message});
+    sendRoom(room); reply({ok:true,result:message});
   });
 
   socket.on("leaveRoom", () => {
