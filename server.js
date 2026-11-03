@@ -13,11 +13,11 @@ const rooms = new Map();
 
 // 출현 확률 합계 100%. 방해 카드는 제거했습니다.
 const CARD_DEFS = [
-  { name:"방어막", description:"다음 공격 피해를 한 번 막습니다.", effect:"shield", color:"#477bd1", weight:25 },
+  { name:"방어막", description:"다음 공격 피해를 한 번 막습니다.", effect:"shield", color:"#477bd1", weight:10 },
   { name:"행운", description:"다음 판정에서 빗나갈 확률이 15%p 증가합니다.", effect:"luck", color:"#b28b31", weight:20 },
   { name:"정찰", description:"현재 판정 확률을 확인합니다.", effect:"scout", color:"#278ca1", weight:20 },
   { name:"회복", description:"목숨을 1 회복합니다. 최대 3입니다.", effect:"heal", color:"#32885d", weight:5 },
-  { name:"보호", description:"다음 공격 피해를 한 번 막습니다. 방어막과 별도 효과입니다.", effect:"protect", color:"#66667d", weight:22 },
+  { name:"보호", description:"다음 공격 피해를 한 번 막습니다. 방어막과 별도 효과입니다.", effect:"protect", color:"#66667d", weight:8 },
   { name:"대천사", description:"치명적인 피해로 체력이 0이 되면 이 카드를 소모하고 체력 3으로 부활합니다. 방어막과 별개 판정입니다.\n\n당신의 등뒤에서 무언가 축복을 내리는 느낌을 받았다...", effect:"archangel", color:"#e0c46c", weight:2 },
   { name:"지옥", description:"사이클이 끝날 때마다 무작위 카드 1장을 잃습니다. 카드가 모두 사라지면 사망합니다.\n\n이 문구를 본자 희망을 버려라.", effect:"hell", color:"#8b2638", weight:1 },
   { name:"반대", description:"상대 한 명을 공격합니다. 50% 빗나감, 50% 명중(피해 1).\n\n내가 굳이 설정대로 따라갈 필요는 없잖아!", effect:"reverse", color:"#a34c9c", weight:5 }
